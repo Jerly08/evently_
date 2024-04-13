@@ -17,7 +17,7 @@ const NavItems = () => {
                         className={`flex-center p-medium-16 whitespace-nowrap ${isActive ? 'text-primary-500' : ''}`} // Add text-primary-500 class if the link is active
                     >
                         <Link href={link.route}>
-                            <a>{link.label}</a> {/* Render the link label */}
+                            {link.label} {/* Render the link label */}
                         </Link>
                     </li>
                 );
