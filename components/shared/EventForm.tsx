@@ -24,6 +24,9 @@ import Image from "next/image";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Checkbox } from "../ui/checkbox";
+import { useUploadThing } from "@/lib/uploadthing";
+import { useRouter } from "next/navigation";
+import { createEvent } from "@/lib/actions/event.actions";
 
 type EventFormProps = {
   userId: string;
@@ -32,6 +35,9 @@ type EventFormProps = {
 const EventForm = ({ userId, type }: EventFormProps) => {
   const [files, setfiles] = useState<File[]>([]);
   const initialValues = eventDefaultValues;
+  const router = useRouter();
+
+  const { startUpload } = useUploadThing("imageUploader");
 
   // 1. Define your form.
   const form = useForm<z.infer<typeof eventFormSchema>>({
@@ -39,11 +45,33 @@ const EventForm = ({ userId, type }: EventFormProps) => {
     defaultValues: initialValues,
   });
 
-  // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof eventFormSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values);
+  async function onSubmit(values: z.infer<typeof eventFormSchema>) {
+    let uploadedImageUrl = values.imageUrl;
+
+    if (files.length > 0) {
+      const uploadedImages = await startUpload(files);
+
+      if (!uploadedImages) {
+        return;
+      }
+
+      uploadedImageUrl = uploadedImages[0].url;
+    }
+    if (type === "Create") {
+      try {
+        const newEvent = await createEvent({
+          event: { ...values, imageUrl: uploadedImageUrl },
+          userId,
+          path: "/profile",
+        });
+        if (newEvent) {
+          form.reset();
+          router.push(`/events/${newEvent._id}`);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
   }
   return (
     <Form {...form}>
@@ -94,6 +122,7 @@ const EventForm = ({ userId, type }: EventFormProps) => {
                 <FormControl className="h-72">
                   <Textarea
                     placeholder="Description"
+                    {...field}
                     className="textare rounded-2xl"
                   />
                 </FormControl>
@@ -169,7 +198,7 @@ const EventForm = ({ userId, type }: EventFormProps) => {
                       onChange={(date: Date) => field.onChange(date)}
                       showTimeSelect
                       timeInputLabel="Time:"
-                      dateFormat="mm/dd/yyyy h:mm aa"
+                      dateFormat="MM/dd/yyyy h:mm aa"
                       wrapperClassName="datePicker"
                     />
                   </div>
@@ -201,7 +230,7 @@ const EventForm = ({ userId, type }: EventFormProps) => {
                       onChange={(date: Date) => field.onChange(date)}
                       showTimeSelect
                       timeInputLabel="Time:"
-                      dateFormat="mm/dd/yyyy h:mm aa"
+                      dateFormat="MM/dd/yyyy h:mm aa"
                       wrapperClassName="datePicker"
                     />
                   </div>
